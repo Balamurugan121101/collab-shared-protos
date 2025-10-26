@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "proto/common";
+
+import "google/protobuf/timestamp.proto";
+
+
+// Standard error response
+message Error {
+  string code = 1;           // Error code (e.g., "INVALID_EMAIL", "USER_EXISTS")
+  string message = 2;        // Human-readable error message
+  map<string, string> details = 3;  // Additional error context
+}
+
+// Standard empty response
+message EmptyResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Metadata included with requests for tracking/logging
+message RequestMetadata {
+  string request_id = 1;                     // Unique request identifier
+  string user_agent = 2;                     // Client user agent
+  string ip_address = 3;                     // Client IP address
+  google.protobuf.Timestamp timestamp = 4;   // Request timestamp
+}

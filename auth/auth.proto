@@ -1,0 +1,179 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "proto/auth";
+
+import "proto/common/common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Authentication Service
+service AuthService {
+  // Register a new user account
+  rpc Register(RegisterRequest) returns (AuthResponse);
+  
+  // Login with email and password
+  rpc Login(LoginRequest) returns (AuthResponse);
+  
+  // Refresh access token using refresh token
+  rpc RefreshToken(RefreshTokenRequest) returns (AuthResponse);
+  
+  // Validate an access token (used by other microservices)
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+  
+  // Logout and invalidate tokens
+  rpc Logout(LogoutRequest) returns (common.EmptyResponse);
+  
+  // Get user profile
+  rpc GetProfile(GetProfileRequest) returns (UserProfile);
+  
+  // Update user profile
+  rpc UpdateProfile(UpdateProfileRequest) returns (UserProfile);
+  
+  // Change user password
+  rpc ChangePassword(ChangePasswordRequest) returns (common.EmptyResponse);
+  
+  // Request password reset
+  rpc RequestPasswordReset(PasswordResetRequest) returns (common.EmptyResponse);
+  
+  // Verify email address
+  rpc VerifyEmail(VerifyEmailRequest) returns (common.EmptyResponse);
+}
+
+// ============= Request Messages =============
+
+// Register a new user
+message RegisterRequest {
+  string email = 1;                      // User email (must be valid format)
+  string password = 2;                   // Password (min 8 chars, complexity required)
+  string full_name = 3;                  // User's full name
+  common.RequestMetadata metadata = 4;   // Request metadata
+}
+
+// Login with credentials
+message LoginRequest {
+  string email = 1;                      // User email
+  string password = 2;                   // User password
+  bool remember_me = 3;                  // Extend refresh token expiry
+  common.RequestMetadata metadata = 4;   // Request metadata
+}
+
+// Refresh access token
+message RefreshTokenRequest {
+  string refresh_token = 1;              // Current refresh token
+  common.RequestMetadata metadata = 2;   // Request metadata
+}
+
+// Validate an access token
+message ValidateTokenRequest {
+  string access_token = 1;               // JWT access token to validate
+}
+
+// Logout
+message LogoutRequest {
+  string access_token = 1;               // Current access token
+  string refresh_token = 2;              // Current refresh token (optional)
+  common.RequestMetadata metadata = 3;   // Request metadata
+}
+
+// Get user profile
+message GetProfileRequest {
+  string user_id = 1;                    // User ID (empty = current user)
+}
+
+// Update user profile
+message UpdateProfileRequest {
+  string user_id = 1;                    // User ID
+  string full_name = 2;                  // Updated full name
+  string avatar_url = 3;                 // Updated avatar URL
+  string bio = 4;                        // User bio/description
+}
+
+// Change password
+message ChangePasswordRequest {
+  string current_password = 1;           // Current password for verification
+  string new_password = 2;               // New password
+}
+
+// Request password reset
+message PasswordResetRequest {
+  string email = 1;                      // User email
+  common.RequestMetadata metadata = 2;   // Request metadata
+}
+
+// Verify email address
+message VerifyEmailRequest {
+  string token = 1;                      // Verification token from email
+}
+
+// ============= Response Messages =============
+
+// Authentication response with tokens and user info
+message AuthResponse {
+  bool success = 1;                      // Operation success status
+  string message = 2;                    // Response message
+  AuthTokens tokens = 3;                 // Authentication tokens
+  UserProfile user = 4;                  // User profile
+  common.Error error = 5;                // Error details (if failed)
+}
+
+// Authentication tokens
+message AuthTokens {
+  string access_token = 1;                    // JWT access token
+  string refresh_token = 2;                   // Refresh token
+  string token_type = 3;                      // Token type (usually "Bearer")
+  int64 expires_in = 4;                       // Access token expiry in seconds
+  google.protobuf.Timestamp issued_at = 5;    // Token issue timestamp
+}
+
+// Token validation response
+message ValidateTokenResponse {
+  bool is_valid = 1;                     // Token validity status
+  TokenClaims claims = 2;                // Token claims (if valid)
+  common.Error error = 3;                // Error details (if invalid)
+}
+
+// JWT token claims
+message TokenClaims {
+  string user_id = 1;                    // User ID
+  string email = 2;                      // User email
+  repeated string roles = 3;             // User roles
+  google.protobuf.Timestamp expires_at = 4;   // Token expiration
+  google.protobuf.Timestamp issued_at = 5;    // Token issue time
+}
+
+// User profile information
+message UserProfile {
+  string user_id = 1;                    // Unique user ID
+  string email = 2;                      // User email
+  string full_name = 3;                  // Full name
+  string avatar_url = 4;                 // Avatar image URL
+  string bio = 5;                        // User biography
+  repeated string roles = 6;             // User roles (e.g., "user", "admin")
+  AccountStatus status = 7;              // Account status
+  bool email_verified = 8;               // Email verification status
+  google.protobuf.Timestamp created_at = 9;   // Account creation time
+  google.protobuf.Timestamp updated_at = 10;  // Last update time
+  google.protobuf.Timestamp last_login = 11;  // Last login time
+}
+
+// ============= Enums =============
+
+// Account status
+enum AccountStatus {
+  ACCOUNT_STATUS_UNSPECIFIED = 0;        // Default/unknown status
+  ACTIVE = 1;                            // Active account
+  INACTIVE = 2;                          // Inactive account
+  SUSPENDED = 3;                         // Suspended account
+  PENDING_VERIFICATION = 4;              // Awaiting email verification
+  DELETED = 5;                           // Soft-deleted account
+}
+
+// User roles
+enum UserRole {
+  USER_ROLE_UNSPECIFIED = 0;             // Default role
+  USER = 1;                              // Regular user
+  MODERATOR = 2;                         // Moderator
+  ADMIN = 3;                             // Administrator
+  SUPER_ADMIN = 4;                       // Super administrator
+}
